@@ -1,0 +1,31 @@
+[package]
+name = "jotunheim"
+version = "0.1.0"
+authors = ["Claus Matzinger <claus.matzinger+kb@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lazy_static = "*"
+prometheus = "*"
+async-std = { version = "*", features = ["attributes", "unstable"] }
+anyhow = "*"
+xactor = "*"
+async-trait = "*"
+tide = "*"
+log = "*"
+bme680 = { version = "*", optional = true }
+embedded-hal = { version = "*", optional = true }
+linux-embedded-hal = { version = "*", optional = true }
+i2cdev = { version = "*", optional = true }
+futures-util = "*"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+clap = "*"
+envconfig = "0.9"
+env_logger = "*"
+env = "*"
+
+[features]
+default = ["sensor-bme680"]
+sensor-bme680 = ["bme680", "embedded-hal", "linux-embedded-hal"]
