@@ -17,14 +17,6 @@ use crate::{
     CollectorAddr,
 };
 
-pub(crate) async fn setup_collectors(name: &str, collector: CollectorAddr) -> Result<Uuid> {
-    let metrics = SetupMetrics::Gauge(
-        name.to_owned(),
-        vec![String::from("kind"), String::from("unit")],
-    );
-    collector.call(metrics).await?
-}
-
 struct AsyncDelay {}
 
 impl embedded_hal::blocking::delay::DelayMs<u8> for AsyncDelay {

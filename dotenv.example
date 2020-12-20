@@ -1,0 +1,3 @@
+JH_NAME=roomA
+JH_ADDR=0.0.0.0:7200
+JH_GPIOS=relay:17,

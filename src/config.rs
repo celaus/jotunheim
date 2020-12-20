@@ -1,8 +1,4 @@
-use anyhow::Result;
-use std::io::Read;
 use envconfig::Envconfig;
-
-
 
 #[derive(Envconfig)]
 pub struct Config {
@@ -11,5 +7,21 @@ pub struct Config {
 
     #[envconfig(from = "JH_NAME", default = "roomA")]
     pub metrics_name: String,
+
+    #[envconfig(from = "JH_GPIOS")]
+    pub gpios: Option<String>,
 }
 
+pub async fn parse_gpios(tuples: &str) -> Vec<(String, u32)> {
+    tuples
+        .split(',')
+        .filter_map(|t| t.find(':').map(|p| t.split_at(p)))
+        .filter_map(|(a, b)| {
+            if let Some(v) = b[1..].parse::<u32>().ok() {
+                Some((a.to_string(), v))
+            } else {
+                None
+            }
+        })
+        .collect()
+}

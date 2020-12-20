@@ -24,5 +24,16 @@ pub(crate) enum SetupMetrics {
 #[message]
 pub(crate) struct ReadNow;
 
+
+#[message(result = "bool")]
+pub(crate) struct SwitchState;
+
 #[message(result = "anyhow::Result<String>")]
 pub(crate) struct EncodeData;
+
+#[message(result = "anyhow::Result<()>")]
+#[derive(Debug)]
+pub(crate) enum Switch {
+    On,
+    Off
+}

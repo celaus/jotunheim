@@ -25,7 +25,9 @@ clap = "*"
 envconfig = "0.9"
 env_logger = "*"
 env = "*"
+rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
 
 [features]
-default = ["sensor-bme680"]
+default = ["switch-gpio"]
 sensor-bme680 = ["bme680", "embedded-hal", "linux-embedded-hal"]
+switch-gpio = ["rust_gpiozero"]
