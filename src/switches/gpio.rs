@@ -1,8 +1,9 @@
-use crate::msg::{Switch, SwitchState, Value};
-use rust_gpiozero::*;
+use crate::{AccessoryType, msg::{Switch, SwitchState, Value}};
 use log::{debug, info};
+use rust_gpiozero::*;
 use uuid::Uuid;
 use xactor::*;
+use crate::switches::SetupMetrics;
 
 use anyhow::Result;
 
@@ -17,20 +18,32 @@ pub(crate) struct GpioSwitch {
 }
 
 impl GpioSwitch {
-    pub fn new(pin_no: u32, collector_id: Uuid, name: String) -> Self {
+    pub fn new<I: Into<String>>(pin_no: u32, name: I) -> Self {
         let mut dev = DigitalOutputDevice::new(pin_no as u8);
-
+        let collector_id = Uuid::new_v4();
         GpioSwitch {
             dev,
             state: false, // major assumption :)
             collector_id,
-            name,
-            pin_no
+            name: name.into(),
+            pin_no,
         }
     }
 }
 
-impl Actor for GpioSwitch {}
+#[async_trait::async_trait]
+impl Actor for GpioSwitch {
+    async fn started(&mut self, ctx: &mut Context<Self>) -> anyhow::Result<()> {
+        let mut addr = Broker::from_registry().await?;
+        addr.publish(SetupMetrics::Gauge(
+            self.collector_id,
+            format!("switch:{}", self.name),
+            vec![String::from("name")],
+        ))?;
+
+        Ok(())
+    }
+}
 
 #[async_trait::async_trait]
 impl Handler<ReadNow> for GpioSwitch {
@@ -41,6 +54,7 @@ impl Handler<ReadNow> for GpioSwitch {
             id: self.collector_id,
             reading: Value::Simple(if self.state { 1.0 } else { 0.0 }),
             labels: vec![self.name.clone()],
+            accessory_type: AccessoryType::Switch
         });
     }
 }
@@ -55,12 +69,11 @@ impl Handler<SwitchState> for GpioSwitch {
 #[async_trait::async_trait]
 impl Handler<Switch> for GpioSwitch {
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: Switch) -> Result<()> {
+        info!("Setting GPIO '{}' to {:?}", self.name, msg);
         let value = match msg {
             Switch::On => self.dev.on(),
             Switch::Off => self.dev.off(),
         };
-        info!("Setting GPIO '{}' to {:?}", self.name, msg);
-        
         Ok(())
     }
 }

@@ -5,13 +5,14 @@ mod db;
 mod msg;
 mod sensors;
 mod switches;
+mod webhook;
 use clap::{App as ClApp, Arg};
 
 use config::{parse_gpios, Config};
 use db::PrometheusCollector;
 use env;
 use log::info;
-use msg::{EncodeData, SensorReading, Switch};
+use msg::{EncodeData, SensorReading, Switch, SwitchState};
 
 #[cfg(feature = "sensor-bme680")]
 use sensors::bme680::{setup_collectors, Bme680SensorReader};
@@ -20,6 +21,7 @@ use sensors::bme680::{setup_collectors, Bme680SensorReader};
 use switches::gpio::GpioSwitch;
 
 use envconfig::Envconfig;
+use webhook::WebHooker;
 use std::{collections::HashMap, fs::File, future::Future, time::Duration};
 use tide::{prelude::*, Response, StatusCode}; // Pulls in the json! macro.
 use tide::{Body, Request};
@@ -28,6 +30,16 @@ use xactor::{Actor, Addr};
 
 pub(crate) type CollectorAddr = Addr<PrometheusCollector>;
 pub(crate) type SwitchAddr = Addr<GpioSwitch>;
+
+#[derive(Debug, Clone, Copy)]
+enum AccessoryType {
+    Temperature,
+    Pressure,
+    Humidity,
+    GasResistance,
+    Switch,
+    Unknown,
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -38,7 +50,7 @@ pub struct AppState {
 async fn switch(req: Request<AppState>) -> tide::Result {
     let id = req.param("id")?;
     let on_off: i32 = req.param("value")?.parse()?;
-    
+
     let state = req.state();
     let mut resp = Response::new(StatusCode::Ok);
 
@@ -49,6 +61,21 @@ async fn switch(req: Request<AppState>) -> tide::Result {
         } else {
             gpio.call(Switch::On).await?;
         }
+    } else {
+        resp = Response::new(StatusCode::NotFound);
+    }
+    Ok(resp)
+}
+
+async fn switch_status(req: Request<AppState>) -> tide::Result {
+    let id = req.param("id")?;
+
+    let state = req.state();
+    let mut resp = Response::new(StatusCode::Ok);
+
+    if let Some(gpio) = state.gpio.get(id) {
+        let result = gpio.call(SwitchState {}).await? as u8;
+        resp.set_body(Body::from_string(format!("{}", result)));
     } else {
         resp = Response::new(StatusCode::NotFound);
     }
@@ -90,10 +117,9 @@ async fn main() -> Result<()> {
 
     info!("Welcome to Jotunheim.");
     let addr = PrometheusCollector::new()?.start().await?;
-
-    let sensor_id = sensors::setup_collectors(&config.metrics_name, addr.clone()).await?;
-    let switch_id =
-        switches::setup_collectors(&format!("{}sw", &config.metrics_name), addr.clone()).await?;
+    if let Some(webhook_url) = &config.webhook {
+        let _ = WebHooker::new(webhook_url)?.start().await?;
+    }
 
     let mut switches = HashMap::new();
 
@@ -104,7 +130,7 @@ async fn main() -> Result<()> {
         info!("... parsing {:?}", gpios);
         let switches_actors: HashMap<String, GpioSwitch> = gpios
             .into_iter()
-            .map(|(n, p)| (n.clone(), GpioSwitch::new(p, switch_id, n)))
+            .map(|(n, p)| (n.clone(), GpioSwitch::new(p, n)))
             .collect();
         info!(
             "GPIOs activated: {:?}",
@@ -117,7 +143,7 @@ async fn main() -> Result<()> {
     }
 
     #[cfg(feature = "sensor-bme680")]
-    let _ = Bme680SensorReader::new("/dev/i2c-1", id, Duration::from_secs(1))?
+    let _ = Bme680SensorReader::new("/dev/i2c-1", config.metrics_name, Duration::from_secs(1))?
         .start()
         .await?;
     let srv = server(&config.endpoint, addr.clone(), switches);

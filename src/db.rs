@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use crate::msg::{EncodeData, SensorReading, SetupMetrics};
+use log::error;
 use prometheus::{
     CounterVec, Encoder, GaugeVec, IntCounter, IntCounterVec, IntGauge, IntGaugeVec, Opts,
     Registry, TextEncoder,
 };
 use uuid::Uuid;
 use xactor::*;
-use log::error;
 
 enum DataCollector {
     Gauge(GaugeVec),
@@ -61,6 +61,7 @@ impl PrometheusCollector {
 #[async_trait::async_trait]
 impl Actor for PrometheusCollector {
     async fn started(&mut self, ctx: &mut Context<Self>) -> Result<()> {
+        ctx.subscribe::<SetupMetrics>().await?;
         ctx.subscribe::<SensorReading>().await?;
         Ok(())
     }
@@ -68,27 +69,28 @@ impl Actor for PrometheusCollector {
 
 #[async_trait::async_trait]
 impl Handler<SetupMetrics> for PrometheusCollector {
-    async fn handle(&mut self, _ctx: &mut Context<Self>, msg: SetupMetrics) -> Result<Uuid> {
+    async fn handle(&mut self, _ctx: &mut Context<Self>, msg: SetupMetrics) {
         match msg {
-            SetupMetrics::Gauge(name, labels) => {
+            SetupMetrics::Gauge(id, name, labels) => {
                 let options = Opts::new(name, "help");
                 let label_names: Vec<&str> = labels.iter().map(|s| &**s).collect();
-                let gauge = GaugeVec::new(options, &label_names)?;
-                self.registry.register(Box::new(gauge.clone()))?;
-                let id = Uuid::new_v4();
+                let gauge = GaugeVec::new(options, &label_names).expect("Couldn't create Gauge");
+                self.registry
+                    .register(Box::new(gauge.clone()))
+                    .expect("Couldn't register metric to prometheus");
                 self.metrics
                     .insert(id.clone(), DataCollector::Gauge(gauge.clone()));
-                Ok(id)
             }
-            SetupMetrics::Counter(name, labels) => {
+            SetupMetrics::Counter(id, name, labels) => {
                 let options = Opts::new(name, "help");
                 let label_names: Vec<&str> = labels.iter().map(|s| &**s).collect();
-                let gauge = CounterVec::new(options, &label_names)?;
-                self.registry.register(Box::new(gauge.clone()))?;
-                let id = Uuid::new_v4();
+                let gauge =
+                    CounterVec::new(options, &label_names).expect("Couldn't create Counter");
+                self.registry
+                    .register(Box::new(gauge.clone()))
+                    .expect("Couldn't register metric to prometheus");
                 self.metrics
                     .insert(id.clone(), DataCollector::Counter(gauge.clone()));
-                Ok(id)
             }
         }
     }
@@ -104,8 +106,7 @@ impl Handler<SensorReading> for PrometheusCollector {
                 crate::msg::Value::Inc => dc.inc(&lv),
                 crate::msg::Value::Dec => dc.dec(&lv),
             }
-        }
-        else {
+        } else {
             error!("Couldn't find collector '{}'", msg.id);
         }
     }

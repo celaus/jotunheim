@@ -1,11 +1,14 @@
 use xactor::*;
 
+use crate::AccessoryType;
+
 #[message]
 #[derive(Clone, Debug)]
 pub(crate) struct SensorReading {
     pub id: uuid::Uuid,
     pub reading: Value,
-    pub labels: Vec<String>
+    pub labels: Vec<String>,
+    pub accessory_type: AccessoryType,
 }
 
 #[derive(Clone, Debug)]
@@ -15,10 +18,11 @@ pub(crate) enum Value {
     Dec,
 }
 
-#[message(result = "anyhow::Result<uuid::Uuid>")]
+#[message]
+#[derive(Clone, Debug)]
 pub(crate) enum SetupMetrics {
-    Gauge(String, Vec<String>),
-    Counter(String, Vec<String>),
+    Gauge(uuid::Uuid, String, Vec<String>),
+    Counter(uuid::Uuid, String, Vec<String>),
 }
 
 #[message]

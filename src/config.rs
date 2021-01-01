@@ -10,6 +10,9 @@ pub struct Config {
 
     #[envconfig(from = "JH_GPIOS")]
     pub gpios: Option<String>,
+
+    #[envconfig(from = "JH_WEBHOOK")]
+    pub webhook: Option<String>,
 }
 
 pub async fn parse_gpios(tuples: &str) -> Vec<(String, u32)> {

@@ -17,6 +17,14 @@ use crate::{
     CollectorAddr,
 };
 
+pub(crate) async fn setup_collectors(name: &str, collector: CollectorAddr) -> Result<Uuid> {
+    let metrics = SetupMetrics::Gauge(
+        name.to_owned(),
+        vec![String::from("kind"), String::from("unit")],
+    );
+    collector.call(metrics).await?
+}
+
 struct AsyncDelay {}
 
 impl embedded_hal::blocking::delay::DelayMs<u8> for AsyncDelay {
@@ -29,30 +37,21 @@ impl embedded_hal::blocking::delay::DelayMs<u8> for AsyncDelay {
 pub(crate) struct Bme680SensorReader {
     dev: Bme680<I2cdev, AsyncDelay>,
     collector_id: Uuid,
-    resolution: Duration,
-    name: String
+    resolution: Duration
 }
 
 // "/dev/i2c-1"
 impl Bme680SensorReader {
-    pub fn new<I: Into<String>>(path: &str, name: I, resolution: Duration) -> Result<Self> {
+    pub fn new(path: &str, collector_id: Uuid, resolution: Duration) -> Result<Self> {
         let i2c = I2cdev::new(path)?;
         let mut dev = Bme680::init(i2c, AsyncDelay {}, I2CAddress::Primary).unwrap();
-        let collector_id = Uuid::new_v4();
-        Ok(Bme680SensorReader { dev, collector_id, resolution, name: name.into() })
+        Ok(Bme680SensorReader { dev, collector_id, resolution })
     }
 }
 
 #[async_trait::async_trait]
 impl Actor for Bme680SensorReader {
     async fn started(&mut self, ctx: &mut Context<Self>) -> anyhow::Result<()> {
-        let mut addr = Broker::from_registry().await?;
-        addr.publish(SetupMetrics::Gauge(
-            self.collector_id,
-            self.name.clone(),
-            vec![String::from("kind"), String::from("unit")],
-        ))?;
-
         ctx.send_interval_with(|| ReadNow{}, self.resolution);
         Ok(())
     }
@@ -98,25 +97,21 @@ impl Handler<ReadNow> for Bme680SensorReader {
                 id: self.collector_id,
                 reading: Value::Simple(data.temperature_celsius()),
                 labels: vec![String::from("temperature"), String::from("celsius")],
-                accessory_type: AccessoryType::Temperature,
             },
             SensorReading {
                 id: self.collector_id,
                 reading: Value::Simple(data.pressure_hpa()),
                 labels: vec![String::from("pressure"), String::from("hpa")],
-                accessory_type: AccessoryType::Pressure,
             },
             SensorReading {
                 id: self.collector_id,
                 reading: Value::Simple(data.humidity_percent()),
                 labels: vec![String::from("humidity"), String::from("percent")],
-                accessory_type: AccessoryType::Humidity,
             },
             SensorReading {
                 id: self.collector_id,
                 reading: Value::Simple(data.gas_resistance_ohm()as f32),
                 labels: vec![String::from("gas_resistance"), String::from("ohm")],
-                accessory_type: AccessoryType::GasResistance,
             },
         ];
 
