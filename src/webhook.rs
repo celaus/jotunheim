@@ -6,18 +6,18 @@ use crate::{
 };
 use async_std::task;
 use dyn_fmt::AsStrFormatExt;
-use log::error;
+use log::{error, info};
 use uuid::Uuid;
 use xactor::*;
 
-pub(crate) struct WebHooker {
+pub(crate) struct WebHookCollector {
     metrics: HashMap<Uuid, String>,
     url: String,
 }
 
-impl WebHooker {
+impl WebHookCollector {
     pub fn new<I: Into<String>>(url: I) -> Result<Self> {
-        Ok(WebHooker {
+        Ok(WebHookCollector {
             metrics: HashMap::new(),
             url: url.into(),
         })
@@ -25,7 +25,7 @@ impl WebHooker {
 }
 
 #[async_trait::async_trait]
-impl Actor for WebHooker {
+impl Actor for WebHookCollector {
     async fn started(&mut self, ctx: &mut Context<Self>) -> Result<()> {
         ctx.subscribe::<SetupMetrics>().await?;
         ctx.subscribe::<SensorReading>().await?;
@@ -34,8 +34,9 @@ impl Actor for WebHooker {
 }
 
 #[async_trait::async_trait]
-impl Handler<SetupMetrics> for WebHooker {
+impl Handler<SetupMetrics> for WebHookCollector {
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: SetupMetrics) {
+        info!("Setting up metrics: {:?}", msg);
         match msg {
             SetupMetrics::Gauge(id, name, labels) | SetupMetrics::Counter(id, name, labels) => {
                 self.metrics.insert(id.clone(), name);
@@ -45,13 +46,15 @@ impl Handler<SetupMetrics> for WebHooker {
 }
 
 #[async_trait::async_trait]
-impl Handler<SensorReading> for WebHooker {
+impl Handler<SensorReading> for WebHookCollector {
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: SensorReading) {
         if let Some(accessory_id) = self.metrics.get(&msg.id) {
+            info!("Reading for received: '{:?}'", msg);
             let s = match_state_str(accessory_id, msg.accessory_type, msg.reading);
             let webhook = self.url.format(&[&s]);
             task::spawn(async move {
-                ureq::get(&webhook);
+                info!("Executing webhook URL: {}", webhook);
+                info!("Response: {:?}", ureq::get(&webhook).call());
             })
             .await;
         } else {
@@ -64,15 +67,21 @@ fn match_state_str(accessory_id: &str, t: AccessoryType, val: Value) -> String {
     if let Value::Simple(val) = val {
         let val = val.to_string();
         match t {
-            AccessoryType::Temperature
-            | AccessoryType::Pressure
-            | AccessoryType::Humidity
-            | AccessoryType::GasResistance => {
-                "accessoryId={}&value={}".format(&[accessory_id, &val])
+            AccessoryType::Temperature => {
+                "accessoryId={}-temperature&value={}".format(&[accessory_id, &val])
+            }
+            AccessoryType::Pressure => {
+                "accessoryId={}-pressure&value={}".format(&[accessory_id, &val])
+            }
+            AccessoryType::Humidity => {
+                "accessoryId={}-humidity&value={}".format(&[accessory_id, &val])
+            }
+            AccessoryType::GasResistance => {
+                "accessoryId={}-gasresistance&value={}".format(&[accessory_id, &val])
             }
             AccessoryType::Switch => {
                 let val = (val == "0.0").to_string();
-                "accessoryId={}&state={}".format(&[accessory_id, &val])
+                "accessoryId={}-switch&state={}".format(&[accessory_id, &val])
             }
             _ => "accessoryId={}&value={}".format(&[accessory_id, &val]),
         }

@@ -1,3 +1,5 @@
+use crate::{msg::Value, AccessoryType};
+use std::path::Path;
 use bme680::*;
 use core::result;
 use core::time::Duration;
@@ -5,10 +7,9 @@ use embedded_hal::blocking::i2c;
 use futures_util::future::UnsafeFutureObj;
 use hal::I2cdev;
 use linux_embedded_hal as hal;
-use log::{info, debug};
+use log::{debug, info};
 use uuid::Uuid;
 use xactor::*;
-use crate::msg::Value;
 
 use anyhow::Result;
 
@@ -26,11 +27,15 @@ impl embedded_hal::blocking::delay::DelayMs<u8> for AsyncDelay {
     }
 }
 
+pub fn is_available(path: &str) -> bool {
+    Path::new(path).exists()
+}
+
 pub(crate) struct Bme680SensorReader {
     dev: Bme680<I2cdev, AsyncDelay>,
     collector_id: Uuid,
     resolution: Duration,
-    name: String
+    name: String,
 }
 
 // "/dev/i2c-1"
@@ -39,7 +44,12 @@ impl Bme680SensorReader {
         let i2c = I2cdev::new(path)?;
         let mut dev = Bme680::init(i2c, AsyncDelay {}, I2CAddress::Primary).unwrap();
         let collector_id = Uuid::new_v4();
-        Ok(Bme680SensorReader { dev, collector_id, resolution, name: name.into() })
+        Ok(Bme680SensorReader {
+            dev,
+            collector_id,
+            resolution,
+            name: name.into(),
+        })
     }
 }
 
@@ -53,7 +63,8 @@ impl Actor for Bme680SensorReader {
             vec![String::from("kind"), String::from("unit")],
         ))?;
 
-        ctx.send_interval_with(|| ReadNow{}, self.resolution);
+        ctx.send_interval(ReadNow, self.resolution);
+        info!("BME680 reader set up");
         Ok(())
     }
 }
@@ -61,6 +72,7 @@ impl Actor for Bme680SensorReader {
 #[async_trait::async_trait]
 impl Handler<ReadNow> for Bme680SensorReader {
     async fn handle(&mut self, _ctx: &mut Context<Self>, _msg: ReadNow) {
+        info!("READING");
         let settings = SettingsBuilder::new()
             .with_humidity_oversampling(OversamplingSetting::OS2x)
             .with_pressure_oversampling(OversamplingSetting::OS4x)
@@ -114,7 +126,7 @@ impl Handler<ReadNow> for Bme680SensorReader {
             },
             SensorReading {
                 id: self.collector_id,
-                reading: Value::Simple(data.gas_resistance_ohm()as f32),
+                reading: Value::Simple(data.gas_resistance_ohm() as f32),
                 labels: vec![String::from("gas_resistance"), String::from("ohm")],
                 accessory_type: AccessoryType::GasResistance,
             },
@@ -124,6 +136,5 @@ impl Handler<ReadNow> for Bme680SensorReader {
         for reading in readings {
             addr.publish(reading).unwrap();
         }
-
     }
 }

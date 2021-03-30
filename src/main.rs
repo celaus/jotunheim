@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_std::prelude::*;
 mod config;
 mod db;
 mod msg;
@@ -8,30 +7,31 @@ mod switches;
 mod webhook;
 use clap::{App as ClApp, Arg};
 
-use config::{parse_gpios, Config};
+use config::Config;
 use db::PrometheusCollector;
 use env;
 use log::info;
 use msg::{EncodeData, SensorReading, Switch, SwitchState};
 
 #[cfg(feature = "sensor-bme680")]
-use sensors::bme680::{setup_collectors, Bme680SensorReader};
+use sensors::{bme680::Bme680SensorReader, external::ExternalSensorReader};
 
 #[cfg(feature = "switch-gpio")]
 use switches::gpio::GpioSwitch;
 
 use envconfig::Envconfig;
-use webhook::WebHooker;
 use std::{collections::HashMap, fs::File, future::Future, time::Duration};
-use tide::{prelude::*, Response, StatusCode}; // Pulls in the json! macro.
 use tide::{Body, Request};
+use tide::{Response, StatusCode}; // Pulls in the json! macro.
 use uuid::Uuid;
+use webhook::WebHookCollector;
 use xactor::{Actor, Addr};
 
 pub(crate) type CollectorAddr = Addr<PrometheusCollector>;
 pub(crate) type SwitchAddr = Addr<GpioSwitch>;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 enum AccessoryType {
     Temperature,
     Pressure,
@@ -39,6 +39,12 @@ enum AccessoryType {
     GasResistance,
     Switch,
     Unknown,
+}
+
+impl Default for AccessoryType {
+    fn default() -> Self {
+        AccessoryType::Unknown
+    }
 }
 
 #[derive(Clone)]
@@ -109,7 +115,7 @@ async fn main() -> Result<()> {
     let matches = ClApp::new("jotunheim")
         .version("0.1.0")
         .author("Claus Matzinger. <claus.matzinger+kb@gmail.com>")
-        .about("A no-fluff Function-as-a-Service runtime for home use.")
+        .about("A no-fluff sensor reader.")
         .get_matches();
 
     env_logger::init();
@@ -117,17 +123,20 @@ async fn main() -> Result<()> {
 
     info!("Welcome to Jotunheim.");
     let addr = PrometheusCollector::new()?.start().await?;
-    if let Some(webhook_url) = &config.webhook {
-        let _ = WebHooker::new(webhook_url)?.start().await?;
-    }
+    let webhooks = if let Some(webhook_url) = &config.webhook {
+        info!("Found webhook URL: {}", webhook_url);
+        Some(WebHookCollector::new(webhook_url)?.start().await?)
+    } else {
+        None
+    };
 
     let mut switches = HashMap::new();
-
+    let mut external_actors = vec![];
+    let gpios = config.parsed_gpios().await;
+    
     #[cfg(feature = "switch-gpio")]
-    if let Some(s) = config.gpios {
+    if !gpios.is_empty() {
         info!("GPIO module active");
-        let gpios = parse_gpios(&s).await;
-        info!("... parsing {:?}", gpios);
         let switches_actors: HashMap<String, GpioSwitch> = gpios
             .into_iter()
             .map(|(n, p)| (n.clone(), GpioSwitch::new(p, n)))
@@ -142,10 +151,33 @@ async fn main() -> Result<()> {
         }
     }
 
+    let externals = config.parsed_externals().await;
+
+    #[cfg(feature = "sensor-external")]
+    if !externals.is_empty() {
+        info!(
+            "External Sensor module active, {} paths found",
+            externals.len()
+        );
+        for actor in externals
+            .into_iter()
+            .map(|p| ExternalSensorReader::new(p, vec![], Duration::from_secs(1)))
+        {
+            let a = actor.start().await?;
+            external_actors.push(a);
+        }
+    }
+
     #[cfg(feature = "sensor-bme680")]
-    let _ = Bme680SensorReader::new("/dev/i2c-1", config.metrics_name, Duration::from_secs(1))?
-        .start()
-        .await?;
+    let bme = if sensors::bme680::is_available("/dev/i2c-1") {
+        Bme680SensorReader::new("/dev/i2c-1", config.metrics_name, Duration::from_secs(1))?
+            .start()
+            .await
+            .ok()
+    } else {
+        None
+    };
+    
     let srv = server(&config.endpoint, addr.clone(), switches);
     info!("Everything set up and good to go.");
     srv.await;

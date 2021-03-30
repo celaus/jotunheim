@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::msg::{EncodeData, SensorReading, SetupMetrics};
-use log::error;
+use log::{error, info};
 use prometheus::{
     CounterVec, Encoder, GaugeVec, IntCounter, IntCounterVec, IntGauge, IntGaugeVec, Opts,
     Registry, TextEncoder,
@@ -70,6 +70,7 @@ impl Actor for PrometheusCollector {
 #[async_trait::async_trait]
 impl Handler<SetupMetrics> for PrometheusCollector {
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: SetupMetrics) {
+        info!("Setting up: {:?}", msg);
         match msg {
             SetupMetrics::Gauge(id, name, labels) => {
                 let options = Opts::new(name, "help");

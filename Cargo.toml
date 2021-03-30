@@ -27,9 +27,12 @@ env_logger = "*"
 env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
 ureq = "*"
-dyn-fmt ="0.3"
+dyn-fmt = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
 
 [features]
-default = ["switch-gpio"]
+default = ["sensor-bme680", "switch-gpio", "sensor-external"]
 sensor-bme680 = ["bme680", "embedded-hal", "linux-embedded-hal"]
 switch-gpio = ["rust_gpiozero"]
+sensor-external = []

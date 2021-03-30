@@ -26,6 +26,8 @@ pub(crate) enum SetupMetrics {
 }
 
 #[message]
+#[derive(Clone, Debug)]
+
 pub(crate) struct ReadNow;
 
 
