@@ -133,7 +133,7 @@ async fn main() -> Result<()> {
     let mut switches = HashMap::new();
     let mut external_actors = vec![];
     let gpios = config.parsed_gpios().await;
-    
+
     #[cfg(feature = "switch-gpio")]
     if !gpios.is_empty() {
         info!("GPIO module active");
@@ -177,7 +177,7 @@ async fn main() -> Result<()> {
     } else {
         None
     };
-    
+
     let srv = server(&config.endpoint, addr.clone(), switches);
     info!("Everything set up and good to go.");
     srv.await;

@@ -1,9 +1,9 @@
-use uuid::Uuid;
+use crate::{msg::SetupMetrics, CollectorAddr};
 use anyhow::Result;
-use crate::{CollectorAddr, msg::SetupMetrics};
+use uuid::Uuid;
 
-#[cfg(feature="sensor-bme680")]
+#[cfg(feature = "sensor-bme680")]
 pub mod bme680;
 
-#[cfg(feature="sensor-external")]
+#[cfg(feature = "sensor-external")]
 pub mod external;

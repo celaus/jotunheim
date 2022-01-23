@@ -30,7 +30,6 @@ pub(crate) enum SetupMetrics {
 
 pub(crate) struct ReadNow;
 
-
 #[message(result = "bool")]
 pub(crate) struct SwitchState;
 
@@ -41,5 +40,5 @@ pub(crate) struct EncodeData;
 #[derive(Debug)]
 pub(crate) enum Switch {
     On,
-    Off
+    Off,
 }

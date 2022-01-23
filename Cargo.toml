@@ -26,7 +26,7 @@ envconfig = "0.10"
 env_logger = "*"
 env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
-ureq = "*"
+reqwest = "*"
 dyn-fmt = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }

@@ -1,5 +1,4 @@
 use crate::{msg::Value, AccessoryType};
-use std::path::Path;
 use bme680::*;
 use core::result;
 use core::time::Duration;
@@ -8,6 +7,7 @@ use futures_util::future::UnsafeFutureObj;
 use hal::I2cdev;
 use linux_embedded_hal as hal;
 use log::{debug, info};
+use std::path::Path;
 use uuid::Uuid;
 use xactor::*;
 

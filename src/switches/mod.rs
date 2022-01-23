@@ -1,7 +1,7 @@
-use uuid::Uuid;
 use anyhow::Result;
+use uuid::Uuid;
 
-use crate::{CollectorAddr, msg::SetupMetrics};
+use crate::{msg::SetupMetrics, CollectorAddr};
 
-#[cfg(feature="switch-gpio")]
+#[cfg(feature = "switch-gpio")]
 pub mod gpio;

@@ -54,7 +54,10 @@ impl Handler<SensorReading> for WebHookCollector {
             let webhook = self.url.format(&[&s]);
             task::spawn(async move {
                 info!("Executing webhook URL: {}", webhook);
-                info!("Response: {:?}", ureq::get(&webhook).call());
+                info!(
+                    "Response: {:?}",
+                    reqwest::get(&webhook).await.unwrap().text().await.unwrap()
+                );
             })
             .await;
         } else {
