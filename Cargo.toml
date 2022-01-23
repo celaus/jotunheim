@@ -2,28 +2,28 @@
 name = "jotunheim"
 version = "0.1.0"
 authors = ["Claus Matzinger <claus.matzinger+kb@gmail.com>"]
-edition = "2021"
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lazy_static = "*"
-prometheus = "*"
-async-std = { version = "*", features = ["attributes", "unstable", "tokio1"] }
-anyhow = "*"
-xactor = "*"
-async-trait = "*"
-tide = "*"
-log = "*"
-bme680 = { version = "*", optional = true }
-embedded-hal = { version = "*", optional = true }
-linux-embedded-hal = { version = "*", optional = true }
-i2cdev = { version = "*", optional = true }
-futures-util = "*"
+lazy_static = "1.4"
+prometheus = "0.13"
+async-std = { version = "1.10", features = ["attributes", "unstable", "tokio1"] }
+anyhow = "1"
+xactor = "0.7"
+async-trait = "0.1"
+tide = "0.16"
+log = "0.4"
+bme680 = { version = "0.6", optional = true }
+embedded-hal = { version = "0.2", optional = true }
+linux-embedded-hal = { version = "0.3", optional = true }
+i2cdev = { version = "0.5", optional = true }
+futures-util = "0.3"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 clap = "*"
 envconfig = "0.10"
-env_logger = "*"
+env_logger = "0.9"
 env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
 reqwest = { version = "0.11", features = ["rustls-tls"], default-features = false }

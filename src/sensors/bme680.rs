@@ -42,7 +42,7 @@ pub(crate) struct Bme680SensorReader {
 impl Bme680SensorReader {
     pub fn new<I: Into<String>>(path: &str, name: I, resolution: Duration) -> Result<Self> {
         let i2c = I2cdev::new(path)?;
-        let mut dev = Bme680::init(i2c, AsyncDelay {}, I2CAddress::Primary).unwrap();
+        let mut dev = Bme680::init(i2c, &mut AsyncDelay {}, I2CAddress::Primary).unwrap();
         let collector_id = Uuid::new_v4();
         Ok(Bme680SensorReader {
             dev,
@@ -87,9 +87,13 @@ impl Handler<ReadNow> for Bme680SensorReader {
 
         info!("Profile duration {:?}", profile_dur);
         info!("Setting sensor settings");
-        self.dev.set_sensor_settings(settings).unwrap();
+        self.dev
+            .set_sensor_settings(&mut AsyncDelay {}, settings)
+            .unwrap();
         info!("Setting forced power modes");
-        self.dev.set_sensor_mode(PowerMode::ForcedMode).unwrap();
+        self.dev
+            .set_sensor_mode(&mut AsyncDelay {}, PowerMode::ForcedMode)
+            .unwrap();
 
         let sensor_settings = self.dev.get_sensor_settings(settings.1);
         info!("Sensor settings: {:?}", sensor_settings);
@@ -97,9 +101,11 @@ impl Handler<ReadNow> for Bme680SensorReader {
         let power_mode = self.dev.get_sensor_mode();
         info!("Sensor power mode: {:?}", power_mode);
         info!("Setting forced power modes");
-        self.dev.set_sensor_mode(PowerMode::ForcedMode).unwrap();
+        self.dev
+            .set_sensor_mode(&mut AsyncDelay {}, PowerMode::ForcedMode)
+            .unwrap();
         info!("Retrieving sensor data");
-        let (data, _state) = self.dev.get_sensor_data().unwrap();
+        let (data, _state) = self.dev.get_sensor_data(&mut AsyncDelay {}).unwrap();
         info!("Sensor Data {:?}", data);
         info!("Temperature {}°C", data.temperature_celsius());
         info!("Pressure {}hPa", data.pressure_hpa());
