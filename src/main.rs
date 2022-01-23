@@ -20,10 +20,9 @@ use sensors::{bme680::Bme680SensorReader, external::ExternalSensorReader};
 use switches::gpio::GpioSwitch;
 
 use envconfig::Envconfig;
-use std::{collections::HashMap, fs::File, future::Future, time::Duration};
+use std::{collections::HashMap, future::Future, time::Duration};
 use tide::{Body, Request};
 use tide::{Response, StatusCode}; // Pulls in the json! macro.
-use uuid::Uuid;
 use webhook::WebHookCollector;
 use xactor::{Actor, Addr};
 
@@ -63,9 +62,9 @@ async fn switch(req: Request<AppState>) -> tide::Result {
     if let Some(gpio) = state.gpio.get(id) {
         info!("Triggering GPIO '{}'", id);
         if on_off == 0 {
-            gpio.call(Switch::Off).await?;
+            let _ = gpio.call(Switch::Off).await?;
         } else {
-            gpio.call(Switch::On).await?;
+            let _ = gpio.call(Switch::On).await?;
         }
     } else {
         resp = Response::new(StatusCode::NotFound);
@@ -106,13 +105,14 @@ pub(crate) fn server(
         gpio: switches,
     });
     app.at("/metrics").get(metrics);
+    app.at("/s/:id/").get(switch_status);
     app.at("/s/:id/:value").get(switch);
     app.listen(addr.to_owned())
 }
 
 #[async_std::main]
 async fn main() -> Result<()> {
-    let matches = ClApp::new("jotunheim")
+    let _ = ClApp::new("jotunheim")
         .version("0.1.0")
         .author("Claus Matzinger. <claus.matzinger+kb@gmail.com>")
         .about("A no-fluff sensor reader.")
@@ -123,7 +123,7 @@ async fn main() -> Result<()> {
 
     info!("Welcome to Jotunheim.");
     let addr = PrometheusCollector::new()?.start().await?;
-    let webhooks = if let Some(webhook_url) = &config.webhook {
+    let _webhooks = if let Some(webhook_url) = &config.webhook {
         info!("Found webhook URL: {}", webhook_url);
         Some(WebHookCollector::new(webhook_url)?.start().await?)
     } else {
@@ -169,7 +169,7 @@ async fn main() -> Result<()> {
     }
 
     #[cfg(feature = "sensor-bme680")]
-    let bme = if sensors::bme680::is_available("/dev/i2c-1") {
+    let _bme = if sensors::bme680::is_available("/dev/i2c-1") {
         Bme680SensorReader::new("/dev/i2c-1", config.metrics_name, Duration::from_secs(1))?
             .start()
             .await

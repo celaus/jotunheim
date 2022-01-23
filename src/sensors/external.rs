@@ -1,23 +1,13 @@
 use crate::{msg::Value, AccessoryType};
-use anyhow::Result;
 use async_std::task;
-use bme680::*;
-use core::result;
 use core::time::Duration;
-use embedded_hal::blocking::i2c;
-use futures_util::future::UnsafeFutureObj;
-use hal::I2cdev;
-use linux_embedded_hal as hal;
 use log::{debug, error, info};
 use serde_json;
 use std::process::{Command, Stdio};
 use uuid::Uuid;
 use xactor::*;
 
-use crate::{
-    msg::{ReadNow, SensorReading, SetupMetrics},
-    CollectorAddr,
-};
+use crate::msg::{ReadNow, SensorReading, SetupMetrics};
 
 use serde::{Deserialize, Serialize};
 

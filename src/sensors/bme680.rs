@@ -1,9 +1,6 @@
 use crate::{msg::Value, AccessoryType};
 use bme680::*;
-use core::result;
 use core::time::Duration;
-use embedded_hal::blocking::i2c;
-use futures_util::future::UnsafeFutureObj;
 use hal::I2cdev;
 use linux_embedded_hal as hal;
 use log::{debug, info};
@@ -13,10 +10,7 @@ use xactor::*;
 
 use anyhow::Result;
 
-use crate::{
-    msg::{ReadNow, SensorReading, SetupMetrics},
-    CollectorAddr,
-};
+use crate::msg::{ReadNow, SensorReading, SetupMetrics};
 
 struct AsyncDelay {}
 

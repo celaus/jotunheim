@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use crate::{
-    msg::{EncodeData, SensorReading, SetupMetrics, Value},
+    msg::{SensorReading, SetupMetrics, Value},
     AccessoryType,
 };
 use async_std::task;
 use dyn_fmt::AsStrFormatExt;
-use log::{error, info};
+use log::{error, info, trace};
 use uuid::Uuid;
 use xactor::*;
 
@@ -54,12 +54,11 @@ impl Handler<SensorReading> for WebHookCollector {
             let webhook = self.url.format(&[&s]);
             task::spawn(async move {
                 info!("Executing webhook URL: {}", webhook);
-                info!(
+                trace!(
                     "Response: {:?}",
                     reqwest::get(&webhook).await.unwrap().text().await.unwrap()
                 );
-            })
-            .await;
+            });
         } else {
             error!("Couldn't find a webhook '{}'", msg.id);
         }
