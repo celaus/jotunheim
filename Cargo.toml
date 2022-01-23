@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 lazy_static = "*"
 prometheus = "*"
-async-std = { version = "*", features = ["attributes", "unstable"] }
+async-std = { version = "*", features = ["attributes", "unstable", "tokio1"] }
 anyhow = "*"
 xactor = "*"
 async-trait = "*"
@@ -26,7 +26,7 @@ envconfig = "0.10"
 env_logger = "*"
 env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
-reqwest = "*"
+reqwest = { version = "0.11", features = ["rustls-tls"] }
 dyn-fmt = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
