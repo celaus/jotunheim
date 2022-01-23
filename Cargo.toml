@@ -2,7 +2,7 @@
 name = "jotunheim"
 version = "0.1.0"
 authors = ["Claus Matzinger <claus.matzinger+kb@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,7 +22,7 @@ i2cdev = { version = "*", optional = true }
 futures-util = "*"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 clap = "*"
-envconfig = "0.9"
+envconfig = "0.10"
 env_logger = "*"
 env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
