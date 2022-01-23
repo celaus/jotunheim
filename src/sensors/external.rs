@@ -65,7 +65,7 @@ impl Handler<ReadNow> for ExternalSensorReader {
         let default_args = self.args.clone();
         debug!("Starting execution with {}", exe);
         let output: String = task::spawn_blocking(move || -> anyhow::Result<String> {
-            let mut child = Command::new(&*exe)
+            let child = Command::new(&*exe)
                 .args(default_args)
                 .env_clear()
                 .stdout(Stdio::piped())

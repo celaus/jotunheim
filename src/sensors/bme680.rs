@@ -36,7 +36,7 @@ pub(crate) struct Bme680SensorReader {
 impl Bme680SensorReader {
     pub fn new<I: Into<String>>(path: &str, name: I, resolution: Duration) -> Result<Self> {
         let i2c = I2cdev::new(path)?;
-        let mut dev = Bme680::init(i2c, &mut AsyncDelay {}, I2CAddress::Primary).unwrap();
+        let dev = Bme680::init(i2c, &mut AsyncDelay {}, I2CAddress::Primary).unwrap();
         let collector_id = Uuid::new_v4();
         Ok(Bme680SensorReader {
             dev,

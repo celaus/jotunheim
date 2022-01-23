@@ -38,7 +38,7 @@ impl Handler<SetupMetrics> for WebHookCollector {
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: SetupMetrics) {
         info!("Setting up metrics: {:?}", msg);
         match msg {
-            SetupMetrics::Gauge(id, name, labels) | SetupMetrics::Counter(id, name, labels) => {
+            SetupMetrics::Gauge(id, name, _labels) | SetupMetrics::Counter(id, name, _labels) => {
                 self.metrics.insert(id.clone(), name);
             }
         }

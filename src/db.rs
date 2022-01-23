@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use crate::msg::{EncodeData, SensorReading, SetupMetrics};
 use log::{error, info};
-use prometheus::{
-    CounterVec, Encoder, GaugeVec, IntCounter, IntCounterVec, IntGauge, IntGaugeVec, Opts,
-    Registry, TextEncoder,
-};
+use prometheus::{CounterVec, Encoder, GaugeVec, Opts, Registry, TextEncoder};
 use uuid::Uuid;
 use xactor::*;
 
@@ -115,7 +112,7 @@ impl Handler<SensorReading> for PrometheusCollector {
 
 #[async_trait::async_trait]
 impl Handler<EncodeData> for PrometheusCollector {
-    async fn handle(&mut self, _ctx: &mut Context<Self>, msg: EncodeData) -> Result<String> {
+    async fn handle(&mut self, _ctx: &mut Context<Self>, _msg: EncodeData) -> Result<String> {
         let metrics = self.registry.gather();
         let mut buffer = vec![];
         let encoder = TextEncoder::new();

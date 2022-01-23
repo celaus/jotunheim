@@ -5,13 +5,13 @@ mod msg;
 mod sensors;
 mod switches;
 mod webhook;
-use clap::{App as ClApp, Arg};
+use clap::App as ClApp;
 
 use config::Config;
 use db::PrometheusCollector;
-use env;
+
 use log::info;
-use msg::{EncodeData, SensorReading, Switch, SwitchState};
+use msg::{EncodeData, Switch, SwitchState};
 
 #[cfg(feature = "sensor-bme680")]
 use sensors::{bme680::Bme680SensorReader, external::ExternalSensorReader};

@@ -3,7 +3,7 @@ use crate::{
     msg::{Switch, SwitchState, Value},
     AccessoryType,
 };
-use log::{debug, info};
+use log::info;
 use rust_gpiozero::*;
 use uuid::Uuid;
 use xactor::*;
@@ -22,7 +22,7 @@ pub(crate) struct GpioSwitch {
 
 impl GpioSwitch {
     pub fn new<I: Into<String>>(pin_no: u32, name: I) -> Self {
-        let mut dev = DigitalOutputDevice::new(pin_no as u8);
+        let dev = DigitalOutputDevice::new(pin_no as u8);
         let collector_id = Uuid::new_v4();
         GpioSwitch {
             dev,
@@ -36,7 +36,7 @@ impl GpioSwitch {
 
 #[async_trait::async_trait]
 impl Actor for GpioSwitch {
-    async fn started(&mut self, ctx: &mut Context<Self>) -> anyhow::Result<()> {
+    async fn started(&mut self, _ctx: &mut Context<Self>) -> anyhow::Result<()> {
         let mut addr = Broker::from_registry().await?;
         addr.publish(SetupMetrics::Gauge(
             self.collector_id,
@@ -53,7 +53,7 @@ impl Handler<ReadNow> for GpioSwitch {
     async fn handle(&mut self, _ctx: &mut Context<Self>, _msg: ReadNow) {
         let mut addr = Broker::from_registry().await.unwrap();
 
-        addr.publish(SensorReading {
+        let _ = addr.publish(SensorReading {
             id: self.collector_id,
             reading: Value::Simple(if self.state { 1.0 } else { 0.0 }),
             labels: vec![self.name.clone()],
@@ -73,7 +73,7 @@ impl Handler<SwitchState> for GpioSwitch {
 impl Handler<Switch> for GpioSwitch {
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: Switch) -> Result<()> {
         info!("Setting GPIO '{}' to {:?}", self.name, msg);
-        let value = match msg {
+        let _value = match msg {
             Switch::On => self.dev.on(),
             Switch::Off => self.dev.off(),
         };
