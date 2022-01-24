@@ -4,11 +4,10 @@ use core::time::Duration;
 use hal::I2cdev;
 use linux_embedded_hal as hal;
 use log::{debug, info};
-use std::path::Path;
 use uuid::Uuid;
 use xactor::*;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use crate::msg::{ReadNow, SensorReading, SetupMetrics};
 
@@ -22,7 +21,11 @@ impl embedded_hal::blocking::delay::DelayMs<u8> for AsyncDelay {
 }
 
 pub fn is_available(path: &str) -> bool {
-    Path::new(path).exists()
+    if let Ok(d) = I2cdev::new(path) {
+        Bme680::init(d, &mut AsyncDelay {}, I2CAddress::Primary).is_ok()
+    } else {
+        false
+    }
 }
 
 pub(crate) struct Bme680SensorReader {
@@ -36,14 +39,18 @@ pub(crate) struct Bme680SensorReader {
 impl Bme680SensorReader {
     pub fn new<I: Into<String>>(path: &str, name: I, resolution: Duration) -> Result<Self> {
         let i2c = I2cdev::new(path)?;
-        let dev = Bme680::init(i2c, &mut AsyncDelay {}, I2CAddress::Primary).unwrap();
-        let collector_id = Uuid::new_v4();
-        Ok(Bme680SensorReader {
-            dev,
-            collector_id,
-            resolution,
-            name: name.into(),
-        })
+        match Bme680::init(i2c, &mut AsyncDelay {}, I2CAddress::Primary) {
+            Ok(dev) => {
+                let collector_id = Uuid::new_v4();
+                Ok(Bme680SensorReader {
+                    dev,
+                    collector_id,
+                    resolution,
+                    name: name.into(),
+                })
+            }
+            Err(_) => bail!("No I2C device found"),
+        }
     }
 }
 

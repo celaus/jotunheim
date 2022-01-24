@@ -20,7 +20,7 @@ use sensors::{bme680::Bme680SensorReader, external::ExternalSensorReader};
 use switches::gpio::GpioSwitch;
 
 use envconfig::Envconfig;
-use std::{collections::HashMap, future::Future, time::Duration};
+use std::{collections::HashMap, time::Duration};
 use tide::{Body, Request};
 use tide::{Response, StatusCode}; // Pulls in the json! macro.
 use webhook::WebHookCollector;
@@ -95,11 +95,11 @@ async fn metrics(req: Request<AppState>) -> tide::Result {
     Ok(resp)
 }
 
-pub(crate) fn server(
+pub(crate) async fn server(
     addr: &str,
     collector: CollectorAddr,
     switches: HashMap<String, SwitchAddr>,
-) -> impl Future {
+) -> Result<()> {
     let mut app = tide::with_state(AppState {
         collector,
         gpio: switches,
@@ -107,7 +107,8 @@ pub(crate) fn server(
     app.at("/metrics").get(metrics);
     app.at("/s/:id/").get(switch_status);
     app.at("/s/:id/:value").get(switch);
-    app.listen(addr.to_owned())
+    info!("Serving at {}", addr);
+    app.listen(addr.to_owned()).await.map_err(|e| e.into())
 }
 
 #[async_std::main]
@@ -177,9 +178,5 @@ async fn main() -> Result<()> {
     } else {
         None
     };
-
-    let srv = server(&config.endpoint, addr.clone(), switches);
-    info!("Everything set up and good to go.");
-    srv.await;
-    Ok(())
+    server(&config.endpoint, addr.clone(), switches).await
 }
