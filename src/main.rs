@@ -3,6 +3,9 @@ mod config;
 mod db;
 mod msg;
 mod sensors;
+mod utils;
+
+#[cfg(feature = "switch-gpio")]
 mod switches;
 mod webhook;
 use clap::App as ClApp;
@@ -11,7 +14,7 @@ use config::Config;
 use db::PrometheusCollector;
 
 use log::info;
-use msg::{EncodeData, Switch, SwitchState};
+use msg::EncodeData;
 
 #[cfg(feature = "sensor-bme680")]
 use sensors::{bme680::Bme680SensorReader, external::ExternalSensorReader};
@@ -29,6 +32,8 @@ use xactor::{Actor, Addr};
 pub(crate) type CollectorAddr = Addr<PrometheusCollector>;
 pub(crate) type SwitchAddr = Addr<GpioSwitch>;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::e_;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 enum AccessoryType {
@@ -49,42 +54,6 @@ impl Default for AccessoryType {
 #[derive(Clone)]
 pub struct AppState {
     collector: CollectorAddr,
-    gpio: HashMap<String, SwitchAddr>,
-}
-
-async fn switch(req: Request<AppState>) -> tide::Result {
-    let id = req.param("id")?;
-    let on_off: i32 = req.param("value")?.parse()?;
-
-    let state = req.state();
-    let mut resp = Response::new(StatusCode::Ok);
-
-    if let Some(gpio) = state.gpio.get(id) {
-        info!("Triggering GPIO '{}'", id);
-        if on_off == 0 {
-            let _ = gpio.call(Switch::Off).await?;
-        } else {
-            let _ = gpio.call(Switch::On).await?;
-        }
-    } else {
-        resp = Response::new(StatusCode::NotFound);
-    }
-    Ok(resp)
-}
-
-async fn switch_status(req: Request<AppState>) -> tide::Result {
-    let id = req.param("id")?;
-
-    let state = req.state();
-    let mut resp = Response::new(StatusCode::Ok);
-
-    if let Some(gpio) = state.gpio.get(id) {
-        let result = gpio.call(SwitchState {}).await? as u8;
-        resp.set_body(Body::from_string(format!("{}", result)));
-    } else {
-        resp = Response::new(StatusCode::NotFound);
-    }
-    Ok(resp)
 }
 
 async fn metrics(req: Request<AppState>) -> tide::Result {
@@ -93,22 +62,6 @@ async fn metrics(req: Request<AppState>) -> tide::Result {
     let mut resp = Response::new(StatusCode::Ok);
     resp.set_body(Body::from_string(data));
     Ok(resp)
-}
-
-pub(crate) async fn server(
-    addr: &str,
-    collector: CollectorAddr,
-    switches: HashMap<String, SwitchAddr>,
-) -> Result<()> {
-    let mut app = tide::with_state(AppState {
-        collector,
-        gpio: switches,
-    });
-    app.at("/metrics").get(metrics);
-    app.at("/s/:id/").get(switch_status);
-    app.at("/s/:id/:value").get(switch);
-    info!("Serving at {}", addr);
-    app.listen(addr.to_owned()).await.map_err(|e| e.into())
 }
 
 #[async_std::main]
@@ -123,7 +76,7 @@ async fn main() -> Result<()> {
     let config: Config = Config::init_from_env()?;
 
     info!("Welcome to Jotunheim.");
-    let addr = PrometheusCollector::new()?.start().await?;
+    let prometheus = PrometheusCollector::new()?.start().await?;
     let _webhooks = if let Some(webhook_url) = &config.webhook {
         info!("Found webhook URL: {}", webhook_url);
         Some(WebHookCollector::new(webhook_url)?.start().await?)
@@ -131,26 +84,7 @@ async fn main() -> Result<()> {
         None
     };
 
-    let mut switches = HashMap::new();
     let mut external_actors = vec![];
-    let gpios = config.parsed_gpios().await;
-
-    #[cfg(feature = "switch-gpio")]
-    if !gpios.is_empty() {
-        info!("GPIO module active");
-        let switches_actors: HashMap<String, GpioSwitch> = gpios
-            .into_iter()
-            .map(|(n, p)| (n.clone(), GpioSwitch::new(p, n)))
-            .collect();
-        info!(
-            "GPIOs activated: {:?}",
-            switches_actors.keys().collect::<Vec<&String>>()
-        );
-        for (name, actor) in switches_actors {
-            let a = actor.start().await?;
-            switches.insert(name, a);
-        }
-    }
 
     let externals = config.parsed_externals().await;
 
@@ -171,12 +105,24 @@ async fn main() -> Result<()> {
 
     #[cfg(feature = "sensor-bme680")]
     let _bme = if sensors::bme680::is_available("/dev/i2c-1") {
-        Bme680SensorReader::new("/dev/i2c-1", config.metrics_name, Duration::from_secs(1))?
+        Bme680SensorReader::new("/dev/i2c-1", &config.metrics_name, Duration::from_secs(1))?
             .start()
             .await
             .ok()
     } else {
         None
     };
-    server(&config.endpoint, addr.clone(), switches).await
+
+    let mut app = tide::with_state(AppState {
+        collector: prometheus,
+    });
+    app.at("/metrics").get(metrics);
+
+    #[cfg(feature = "switch-gpio")]
+    app.at("/s")
+        .nest(switches::http_handlers::init_and_setup(&config).await?);
+
+    let addr = config.endpoint;
+    info!("Serving at {}", addr);
+    app.listen(addr.to_owned()).await.map_err(e_)
 }

@@ -1170,6 +1170,7 @@ dependencies = [
  "rust_gpiozero",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "tide",
  "uuid",
  "xactor",

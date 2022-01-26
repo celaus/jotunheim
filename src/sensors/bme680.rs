@@ -73,7 +73,6 @@ impl Actor for Bme680SensorReader {
 #[async_trait::async_trait]
 impl Handler<ReadNow> for Bme680SensorReader {
     async fn handle(&mut self, _ctx: &mut Context<Self>, _msg: ReadNow) {
-        info!("READING");
         let settings = SettingsBuilder::new()
             .with_humidity_oversampling(OversamplingSetting::OS2x)
             .with_pressure_oversampling(OversamplingSetting::OS4x)
