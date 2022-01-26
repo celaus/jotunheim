@@ -2,24 +2,26 @@ use crate::msg::SetupMetrics;
 pub mod gpio;
 
 pub mod http_handlers {
-    #[derive(Clone)]
-    pub struct SwitchHttpState {
-        gpio: HashMap<String, SwitchAddr>,
-    }
 
     use std::collections::HashMap;
 
     use anyhow::Result;
     use log::info;
     use tide::{Body, Request, Response, Server, StatusCode};
-    use xactor::Actor;
+    use xactor::{Actor, Addr};
+
+    pub(crate) type SwitchAddr = Addr<GpioSwitch>;
 
     use crate::{
         config::Config,
         msg::{Switch, SwitchState},
         switches::gpio::GpioSwitch,
-        SwitchAddr,
     };
+
+    #[derive(Clone)]
+    pub struct SwitchHttpState {
+        gpio: HashMap<String, SwitchAddr>,
+    }
 
     pub async fn switch(req: Request<SwitchHttpState>) -> tide::Result {
         let id = req.param("id")?;

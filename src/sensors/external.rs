@@ -1,4 +1,4 @@
-use crate::{msg::Value, AccessoryType};
+use crate::{config::Config, msg::Value, AccessoryType};
 use async_std::task;
 use core::time::Duration;
 use log::{debug, error, info};
@@ -103,5 +103,25 @@ impl Handler<ReadNow> for ExternalSensorReader {
         for reading in readings {
             addr.publish(reading).unwrap();
         }
+    }
+}
+
+pub async fn setup(config: &Config) -> Result<Vec<ExternalSensorReader>> {
+    let mut external_actors = vec![];
+    let externals = config.parsed_externals().await;
+
+    if !externals.is_empty() {
+        info!(
+            "External Sensor module active, {} paths found",
+            externals.len()
+        );
+        for actor in externals
+            .into_iter()
+            .map(|p| ExternalSensorReader::new(p, vec![], Duration::from_secs(1)))
+        {
+            let a = actor.start().await?;
+            external_actors.push(a);
+        }
+        external_actors
     }
 }

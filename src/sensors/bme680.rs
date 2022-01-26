@@ -1,4 +1,4 @@
-use crate::{msg::Value, AccessoryType};
+use crate::{config::Config, msg::Value, AccessoryType};
 use bme680::*;
 use core::time::Duration;
 use hal::I2cdev;
@@ -49,7 +49,7 @@ impl Bme680SensorReader {
                     name: name.into(),
                 })
             }
-            Err(_) => bail!("No I2C device found"),
+            Err(_) => bail!("No I2C devicen found"),
         }
     }
 }
@@ -142,5 +142,16 @@ impl Handler<ReadNow> for Bme680SensorReader {
         for reading in readings {
             addr.publish(reading).unwrap();
         }
+    }
+}
+
+pub async fn setup(config: &Config) -> Result<Addr<Bme680SensorReader>> {
+    let i2c_path = &config.bme680;
+    if is_available(i2c_path) {
+        Bme680SensorReader::new(i2c_path, &config.metrics_name, config.resolution())?
+            .start()
+            .await
+    } else {
+        bail!("BME680 not found at {}", i2c_path);
     }
 }

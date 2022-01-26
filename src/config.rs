@@ -1,3 +1,5 @@
+use std::{collections::HashMap, time::Duration};
+
 use envconfig::Envconfig;
 
 #[derive(Envconfig)]
@@ -14,11 +16,17 @@ pub struct Config {
     #[envconfig(from = "JH_EXTERNALS")]
     pub externals: Option<String>,
 
-    #[envconfig(from = "JH_BME680")]
-    pub bme680: Option<String>,
+    #[envconfig(from = "JH_BME680", default = "/dev/i2c-1")]
+    pub bme680: String,
 
     #[envconfig(from = "JH_WEBHOOK")]
     pub webhook: Option<String>,
+
+    #[envconfig(from = "JH_RESOLUTION_MS")]
+    pub resolution_ms: u64,
+
+    #[envconfig(from = "JH_API_CREDENTIALS")]
+    pub api_credentials: String,
 }
 
 impl Config {
@@ -48,5 +56,18 @@ impl Config {
                 vec![]
             }
         }
+    }
+
+    pub async fn parsed_credentials(&self) -> HashMap<String, String> {
+        let tuples: &Vec<_> = &self
+            .api_credentials
+            .split(',')
+            .map(|e| e.trim().to_string())
+            .collect();
+        (&tuples).iter().chunks_exact(2).collect()
+    }
+
+    pub fn resolution(&self) -> Duration {
+        Duration::from_millis(self.resolution_ms)
     }
 }

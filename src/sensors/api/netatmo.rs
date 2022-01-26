@@ -1,13 +1,14 @@
-use crate::{msg::Value, utils::e_, AccessoryType};
-use async_std::task;
+use crate::{config::Config, msg::Value, utils::e_, AccessoryType};
+
+use anyhow::bail;
 use core::time::Duration;
 use log::{debug, error, info};
 use serde_json;
-use std::process::{Command, Stdio};
+
 use uuid::Uuid;
 use xactor::*;
 
-use crate::msg::{ReadNow, SensorReading, SetupMetrics};
+use crate::msg::{SensorReading, SetupMetrics};
 
 use serde::{Deserialize, Serialize};
 const AUTH_URL: &str = "https://api.netatmo.com/oauth2/token";
@@ -246,4 +247,10 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
             }
         }
     }
+}
+
+pub async fn setup(config: &Config) -> Result<Addr<NetatmoSensorReader>> {
+    NetatmoSensorReader::new(i2c_path, &config.metrics_name, config.resolution())?
+        .start()
+        .await
 }

@@ -17,22 +17,20 @@ use log::info;
 use msg::EncodeData;
 
 #[cfg(feature = "sensor-bme680")]
-use sensors::{bme680::Bme680SensorReader, external::ExternalSensorReader};
-
-#[cfg(feature = "switch-gpio")]
-use switches::gpio::GpioSwitch;
+use sensors::bme680::Bme680SensorReader;
 
 use envconfig::Envconfig;
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 use tide::{Body, Request};
 use tide::{Response, StatusCode}; // Pulls in the json! macro.
 use webhook::WebHookCollector;
 use xactor::{Actor, Addr};
 
 pub(crate) type CollectorAddr = Addr<PrometheusCollector>;
-pub(crate) type SwitchAddr = Addr<GpioSwitch>;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "sensor-external")]
+use crate::sensors::external;
 use crate::utils::e_;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -84,34 +82,14 @@ async fn main() -> Result<()> {
         None
     };
 
-    let mut external_actors = vec![];
-
-    let externals = config.parsed_externals().await;
-
     #[cfg(feature = "sensor-external")]
-    if !externals.is_empty() {
-        info!(
-            "External Sensor module active, {} paths found",
-            externals.len()
-        );
-        for actor in externals
-            .into_iter()
-            .map(|p| ExternalSensorReader::new(p, vec![], Duration::from_secs(1)))
-        {
-            let a = actor.start().await?;
-            external_actors.push(a);
-        }
-    }
+    let _external_actors = external::setup(&config).await?;
 
     #[cfg(feature = "sensor-bme680")]
-    let _bme = if sensors::bme680::is_available("/dev/i2c-1") {
-        Bme680SensorReader::new("/dev/i2c-1", &config.metrics_name, Duration::from_secs(1))?
-            .start()
-            .await
-            .ok()
-    } else {
-        None
-    };
+    let _bme = sensors::bme680::setup(&config).await;
+
+    #[cfg(feature = "sensor-api")]
+    let _netatmo = sensors::api::netatmo::setup(&config).await;
 
     let mut app = tide::with_state(AppState {
         collector: prometheus,
