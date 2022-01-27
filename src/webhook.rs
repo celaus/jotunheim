@@ -56,7 +56,7 @@ impl Handler<SensorReading> for WebHookCollector {
                 info!("Executing webhook URL: {}", webhook);
                 trace!(
                     "Response: {:?}",
-                    reqwest::get(&webhook).await.unwrap().text().await.unwrap()
+                    surf::get(&webhook).recv_string().await.unwrap()
                 );
             });
         } else {
@@ -81,10 +81,13 @@ fn match_state_str(accessory_id: &str, t: AccessoryType, val: Value) -> String {
             AccessoryType::GasResistance => {
                 "accessoryId={}-gasresistance&value={}".format(&[accessory_id, &val])
             }
+            AccessoryType::Co2 => "accessoryId={}-co2&value={}".format(&[accessory_id, &val]),
             AccessoryType::Switch => {
                 let val = (val == "0.0").to_string();
                 "accessoryId={}-switch&state={}".format(&[accessory_id, &val])
             }
+            AccessoryType::Wind => "accessoryId={}-wind&value={}".format(&[accessory_id, &val]),
+            AccessoryType::Rain => "accessoryId={}-rain&value={}".format(&[accessory_id, &val]),
             _ => "accessoryId={}&value={}".format(&[accessory_id, &val]),
         }
     } else {

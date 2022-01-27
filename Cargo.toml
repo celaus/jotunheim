@@ -9,11 +9,7 @@ edition = "2018"
 [dependencies]
 lazy_static = "1.4"
 prometheus = "0.13"
-async-std = { version = "1.10", features = [
-  "attributes",
-  "unstable",
-  "tokio1",
-] }
+async-std = { version = "1.10", features = ["attributes", "unstable"] }
 anyhow = "1"
 xactor = "0.7"
 async-trait = "0.1"
@@ -30,13 +26,15 @@ envconfig = "0.10"
 env_logger = "0.9"
 env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
-reqwest = { version = "0.11", features = [
-  "rustls-tls", "json"
+surf = { version = "2", features = [
+  "h1-client-rustls",
 ], default-features = false }
 dyn-fmt = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7", optional = true }
+base64 = "0.13"
+geohash = "0.12"
 
 [features]
 default = ["sensor-bme680", "switch-gpio", "sensor-external", "sensor-api"]

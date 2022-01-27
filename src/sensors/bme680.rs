@@ -28,7 +28,7 @@ pub fn is_available(path: &str) -> bool {
     }
 }
 
-pub(crate) struct Bme680SensorReader {
+pub struct Bme680SensorReader {
     dev: Bme680<I2cdev, AsyncDelay>,
     collector_id: Uuid,
     resolution: Duration,

@@ -19,7 +19,7 @@ struct ExternalReading {
     accessory_type: AccessoryType,
 }
 
-pub(crate) struct ExternalSensorReader {
+pub struct ExternalSensorReader {
     path: String,
     args: Vec<String>,
     resolution: Duration,
@@ -106,7 +106,7 @@ impl Handler<ReadNow> for ExternalSensorReader {
     }
 }
 
-pub async fn setup(config: &Config) -> Result<Vec<ExternalSensorReader>> {
+pub async fn setup(config: &Config) -> Result<Vec<Addr<ExternalSensorReader>>> {
     let mut external_actors = vec![];
     let externals = config.parsed_externals().await;
 
@@ -122,6 +122,8 @@ pub async fn setup(config: &Config) -> Result<Vec<ExternalSensorReader>> {
             let a = actor.start().await?;
             external_actors.push(a);
         }
-        external_actors
+        Ok(external_actors)
+    } else {
+        Ok(vec![])
     }
 }

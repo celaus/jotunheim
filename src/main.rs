@@ -40,6 +40,9 @@ enum AccessoryType {
     Humidity,
     GasResistance,
     Switch,
+    Co2,
+    Wind,
+    Rain,
     Unknown,
 }
 
