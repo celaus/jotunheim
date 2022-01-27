@@ -16,6 +16,26 @@ const AUTH_URL: &str = "https://api.netatmo.com/oauth2/token";
 const PRIVATE_URL: &str = "https://api.netatmo.com/api/getstationsdata";
 const PUBLIC_URL: &str = "https://api.netatmo.com/api/getpublicdata";
 
+#[derive(Serialize, Deserialize)]
+struct PrivateDataQuery {
+    device_id: String,
+    get_favorites: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GetPublicDataQuery {
+    lat_ne: f64,
+    lon_ne: f64,
+    lat_sw: f64,
+    lon_sw: f64,
+    filter: bool,
+}
+
+enum Reading {
+    Wind(f64),
+    Rain(f64),
+}
+
 #[message]
 #[derive(Clone, Debug)]
 enum IntervalMessage {
@@ -150,26 +170,6 @@ impl Actor for NetatmoSensorReader {
         info!("Netatmo reader set up");
         Ok(())
     }
-}
-
-#[derive(Serialize, Deserialize)]
-struct PrivateDataQuery {
-    device_id: String,
-    get_favorites: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-struct GetPublicDataQuery {
-    lat_ne: f64,
-    lon_ne: f64,
-    lat_sw: f64,
-    lon_sw: f64,
-    filter: bool,
-}
-
-enum Reading {
-    Wind(f64),
-    Rain(f64),
 }
 
 #[async_trait::async_trait]
