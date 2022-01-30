@@ -1,4 +1,4 @@
-use crate::{config::Config, extract_from, msg::Value, utils::avg, AccessoryType};
+use crate::{config::Config, extract_from, msg::Value, utils::avg};
 
 use anyhow::anyhow;
 use async_std::task;
@@ -241,7 +241,6 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                             id: collector_id,
                                             reading: Value::Simple(avg(&wind) as f32),
                                             labels: vec![String::from("wind"), String::from("kph")],
-                                            accessory_type: AccessoryType::Wind,
                                         })
                                         .unwrap();
 
@@ -249,7 +248,6 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                             id: collector_id,
                                             reading: Value::Simple(avg(&rain) as f32),
                                             labels: vec![String::from("rain"), String::from("mm")],
-                                            accessory_type: AccessoryType::Rain,
                                         })
                                         .unwrap();
                                     }
@@ -285,7 +283,6 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                                     String::from("temperature"),
                                                     String::from("celsius"),
                                                 ],
-                                                accessory_type: AccessoryType::Temperature,
                                             },
                                             SensorReading {
                                                 id: collector_id,
@@ -296,7 +293,6 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                                     String::from("pressure"),
                                                     String::from("hpa"),
                                                 ],
-                                                accessory_type: AccessoryType::Pressure,
                                             },
                                             SensorReading {
                                                 id: collector_id,
@@ -307,7 +303,6 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                                     String::from("humidity"),
                                                     String::from("percent"),
                                                 ],
-                                                accessory_type: AccessoryType::Humidity,
                                             },
                                             SensorReading {
                                                 id: collector_id,
@@ -318,7 +313,6 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                                     String::from("co2"),
                                                     String::from("ppm"),
                                                 ],
-                                                accessory_type: AccessoryType::Co2,
                                             },
                                         ];
                                         for reading in readings {
@@ -355,7 +349,7 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
 
 pub async fn setup(config: &Config) -> Result<Addr<NetatmoSensorReader>> {
     //"id|user|password|clientid|secret"
-    let all_creds = config.parsed_credentials().await;
+    let all_creds = config.parsed_credentials().await?;
     let raw_creds = all_creds
         .get("netatmo")
         .ok_or(anyhow!("No netatmo credentials found"))?;

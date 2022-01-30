@@ -7,7 +7,6 @@ mod utils;
 
 #[cfg(feature = "switch-gpio")]
 mod switches;
-mod webhook;
 use clap::App as ClApp;
 
 use config::Config;
@@ -20,37 +19,15 @@ use msg::EncodeData;
 use sensors::bme680::Bme680SensorReader;
 
 use envconfig::Envconfig;
-use std::time::Duration;
 use tide::{Body, Request};
 use tide::{Response, StatusCode}; // Pulls in the json! macro.
-use webhook::WebHookCollector;
 use xactor::{Actor, Addr};
 
 pub(crate) type CollectorAddr = Addr<PrometheusCollector>;
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "sensor-external")]
 use crate::sensors::external;
 use crate::utils::e_;
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-enum AccessoryType {
-    Temperature,
-    Pressure,
-    Humidity,
-    GasResistance,
-    Switch,
-    Co2,
-    Wind,
-    Rain,
-    Unknown,
-}
-
-impl Default for AccessoryType {
-    fn default() -> Self {
-        AccessoryType::Unknown
-    }
-}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -78,12 +55,6 @@ async fn main() -> Result<()> {
 
     info!("Welcome to Jotunheim.");
     let prometheus = PrometheusCollector::new()?.start().await?;
-    let _webhooks = if let Some(webhook_url) = &config.webhook {
-        info!("Found webhook URL: {}", webhook_url);
-        Some(WebHookCollector::new(webhook_url)?.start().await?)
-    } else {
-        None
-    };
 
     #[cfg(feature = "sensor-external")]
     let _external_actors = external::setup(&config).await?;

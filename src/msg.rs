@@ -1,14 +1,11 @@
 use xactor::*;
 
-use crate::AccessoryType;
-
 #[message]
 #[derive(Clone, Debug)]
 pub(crate) struct SensorReading {
     pub id: uuid::Uuid,
     pub reading: Value,
     pub labels: Vec<String>,
-    pub accessory_type: AccessoryType,
 }
 
 #[derive(Clone, Debug)]

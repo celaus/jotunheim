@@ -20,7 +20,7 @@ embedded-hal = { version = "0.2", optional = true }
 linux-embedded-hal = { version = "0.3", optional = true }
 i2cdev = { version = "0.5", optional = true }
 futures-util = "0.3"
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "0.8", features = ["v4"] }
 clap = "*"
 envconfig = "0.10"
 env_logger = "0.9"
@@ -28,17 +28,16 @@ env = "*"
 rust_gpiozero = { git = "https://github.com/rahul-thakoor/rust_gpiozero.git", version = "*", optional = true }
 surf = { version = "2", features = [
   "h1-client-rustls",
-], default-features = false }
-dyn-fmt = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0" }
+], default-features = false, optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }
 base64 = "0.13"
 geohash = "0.12"
 
 [features]
-default = ["sensor-bme680", "switch-gpio", "sensor-external", "sensor-api"]
-sensor-bme680 = ["bme680", "embedded-hal", "linux-embedded-hal"]
+default = []
+sensor-bme680 = ["bme680", "embedded-hal", "linux-embedded-hal", "i2cdev"]
 switch-gpio = ["rust_gpiozero"]
-sensor-api = ["serde_urlencoded"]
-sensor-external = []
+sensor-api = ["serde_urlencoded", "surf", "serde_json"]
+sensor-external = ["serde_json", "serde"]

@@ -1,8 +1,5 @@
+use crate::msg::{Switch, SwitchState, Value};
 use crate::switches::SetupMetrics;
-use crate::{
-    msg::{Switch, SwitchState, Value},
-    AccessoryType,
-};
 use log::info;
 use rust_gpiozero::*;
 use uuid::Uuid;
@@ -57,7 +54,6 @@ impl Handler<ReadNow> for GpioSwitch {
             id: self.collector_id,
             reading: Value::Simple(if self.state { 1.0 } else { 0.0 }),
             labels: vec![self.name.clone()],
-            accessory_type: AccessoryType::Switch,
         });
     }
 }

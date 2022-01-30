@@ -1,4 +1,4 @@
-use crate::{config::Config, msg::Value, AccessoryType};
+use crate::{config::Config, msg::Value};
 use bme680::*;
 use core::time::Duration;
 use hal::I2cdev;
@@ -116,25 +116,21 @@ impl Handler<ReadNow> for Bme680SensorReader {
                 id: self.collector_id,
                 reading: Value::Simple(data.temperature_celsius()),
                 labels: vec![String::from("temperature"), String::from("celsius")],
-                accessory_type: AccessoryType::Temperature,
             },
             SensorReading {
                 id: self.collector_id,
                 reading: Value::Simple(data.pressure_hpa()),
                 labels: vec![String::from("pressure"), String::from("hpa")],
-                accessory_type: AccessoryType::Pressure,
             },
             SensorReading {
                 id: self.collector_id,
                 reading: Value::Simple(data.humidity_percent()),
                 labels: vec![String::from("humidity"), String::from("percent")],
-                accessory_type: AccessoryType::Humidity,
             },
             SensorReading {
                 id: self.collector_id,
                 reading: Value::Simple(data.gas_resistance_ohm() as f32),
                 labels: vec![String::from("gas_resistance"), String::from("ohm")],
-                accessory_type: AccessoryType::GasResistance,
             },
         ];
 

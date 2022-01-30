@@ -1,4 +1,4 @@
-use crate::{config::Config, msg::Value, AccessoryType};
+use crate::{config::Config, msg::Value};
 use async_std::task;
 use core::time::Duration;
 use log::{debug, error, info};
@@ -16,7 +16,6 @@ struct ExternalReading {
     value: f64,
     kind: String,
     unit: String,
-    accessory_type: AccessoryType,
 }
 
 pub struct ExternalSensorReader {
@@ -96,7 +95,6 @@ impl Handler<ReadNow> for ExternalSensorReader {
             reading: Value::Simple(v.value as f32),
             id: self.collector_id,
             labels: vec![v.kind, v.unit],
-            accessory_type: AccessoryType::Pressure,
         });
 
         let mut addr = Broker::from_registry().await.unwrap();
