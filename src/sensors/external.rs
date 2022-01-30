@@ -23,16 +23,18 @@ pub struct ExternalSensorReader {
     args: Vec<String>,
     resolution: Duration,
     collector_id: Uuid,
+    name: String,
 }
 
 impl ExternalSensorReader {
-    pub fn new<I: Into<String>>(path: I, args: Vec<String>, resolution: Duration) -> Self {
+    pub fn new<I: Into<String>>(path: I, name: I, args: Vec<String>, resolution: Duration) -> Self {
         let collector_id = Uuid::new_v4();
         ExternalSensorReader {
             path: path.into(),
             args,
             collector_id,
             resolution,
+            name: name.into()
         }
     }
 }
@@ -43,7 +45,7 @@ impl Actor for ExternalSensorReader {
         let mut addr = Broker::from_registry().await?;
         addr.publish(SetupMetrics::Gauge(
             self.collector_id,
-            self.path.clone(),
+            self.name.clone(),
             vec![String::from("kind"), String::from("unit")],
         ))?;
 
@@ -115,7 +117,7 @@ pub async fn setup(config: &Config) -> Result<Vec<Addr<ExternalSensorReader>>> {
         );
         for actor in externals
             .into_iter()
-            .map(|p| ExternalSensorReader::new(p, vec![], Duration::from_secs(1)))
+            .map(|p| ExternalSensorReader::new(&p, &config.metrics_name,vec![], Duration::from_secs(1)))
         {
             let a = actor.start().await?;
             external_actors.push(a);
