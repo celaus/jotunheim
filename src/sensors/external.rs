@@ -34,7 +34,7 @@ impl ExternalSensorReader {
             args,
             collector_id,
             resolution,
-            name: name.into()
+            name: name.into(),
         }
     }
 }
@@ -115,10 +115,9 @@ pub async fn setup(config: &Config) -> Result<Vec<Addr<ExternalSensorReader>>> {
             "External Sensor module active, {} paths found",
             externals.len()
         );
-        for actor in externals
-            .into_iter()
-            .map(|p| ExternalSensorReader::new(&p, &config.metrics_name,vec![], Duration::from_secs(1)))
-        {
+        for actor in externals.into_iter().map(|p| {
+            ExternalSensorReader::new(&p, &config.metrics_name, vec![], Duration::from_secs(1))
+        }) {
             let a = actor.start().await?;
             external_actors.push(a);
         }

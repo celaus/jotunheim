@@ -152,6 +152,8 @@ impl NetatmoSensorReader {
 #[async_trait::async_trait]
 impl Actor for NetatmoSensorReader {
     async fn started(&mut self, ctx: &mut Context<Self>) -> anyhow::Result<()> {
+        println!("---");
+
         let token = handle_auth(&self.auth).await?;
         let when_refresh = Duration::from_secs((token.expires_in - 60) as u64);
         ctx.send_later(IntervalMessage::Refresh, when_refresh);
@@ -349,6 +351,7 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
 
 pub async fn setup(config: &Config) -> Result<Addr<NetatmoSensorReader>> {
     //"id|user|password|clientid|secret"
+    info!("Setting up netatmo sensor");
     let all_creds = config.parsed_credentials().await?;
     let raw_creds = all_creds
         .get("netatmo")

@@ -15,9 +15,6 @@ use db::PrometheusCollector;
 use log::info;
 use msg::EncodeData;
 
-#[cfg(feature = "sensor-bme680")]
-use sensors::bme680::Bme680SensorReader;
-
 use envconfig::Envconfig;
 use tide::{Body, Request};
 use tide::{Response, StatusCode}; // Pulls in the json! macro.
@@ -60,10 +57,10 @@ async fn main() -> Result<()> {
     let _external_actors = external::setup(&config).await?;
 
     #[cfg(feature = "sensor-bme680")]
-    let _bme = sensors::bme680::setup(&config).await;
+    let _bme = sensors::bme680::setup(&config).await?;
 
     #[cfg(feature = "sensor-api")]
-    let _netatmo = sensors::api::netatmo::setup(&config).await;
+    let _netatmo = sensors::api::netatmo::setup(&config).await?;
 
     let mut app = tide::with_state(AppState {
         collector: prometheus,
@@ -73,7 +70,7 @@ async fn main() -> Result<()> {
     #[cfg(feature = "switch-gpio")]
     app.at("/s")
         .nest(switches::http_handlers::init_and_setup(&config).await?);
-
+    println!("####");
     let addr = config.endpoint;
     info!("Serving at {}", addr);
     app.listen(addr.to_owned()).await.map_err(e_)

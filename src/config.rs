@@ -59,31 +59,30 @@ impl Config {
     }
 
     pub async fn parsed_credentials(&self) -> Result<HashMap<String, String>> {
-        let creds = self
-            .api_credentials
-            .as_ref()
-            .unwrap_or(bail!("JH_CREDENTIALS not set"));
-        Ok(creds
-            .split(",")
-            .map(|e| e.trim().to_string())
-            .fold(HashMap::new(), |mut h, s| {
-                if let Some(n) = s.find(':') {
-                    let (k, v) = s.split_at(n + 1);
-                    let decoded = base64::decode(v.trim()).unwrap();
-                    let v = String::from_utf8_lossy(&decoded);
-                    h.insert(k.trim().trim_end_matches(':').to_string(), v.to_string());
-                }
-                h
-            }))
+        match &self.api_credentials {
+            Some(creds) => Ok(creds.split(",").map(|e| e.trim().to_string()).fold(
+                HashMap::new(),
+                |mut h, s| {
+                    if let Some(n) = s.find(':') {
+                        let (k, v) = s.split_at(n + 1);
+                        let decoded = base64::decode(v.trim()).unwrap();
+                        let v = String::from_utf8_lossy(&decoded);
+                        h.insert(k.trim().trim_end_matches(':').to_string(), v.to_string());
+                    }
+                    h
+                },
+            )),
+            None => bail!("JH_CREDENTIALS not set"),
+        }
     }
 
     pub fn location_rect(&self) -> Result<((f64, f64), (f64, f64))> {
-        let loc = self
-            .location
-            .as_ref()
-            .unwrap_or(bail!("JH_LOCATION not set"));
-        let rect = geohash::decode_bbox(loc)?;
-        Ok((rect.min().x_y(), rect.max().x_y()))
+        if let Some(loc) = &self.location {
+            let rect = geohash::decode_bbox(loc)?;
+            Ok((rect.min().x_y(), rect.max().x_y()))
+        } else {
+            bail!("JH_LOCATION not set")
+        }
     }
 
     pub fn resolution(&self) -> Duration {
@@ -100,11 +99,11 @@ mod tests {
     async fn test_Config_parse_credentials_is_base64() {
         let mut conf = Config::default();
         let (v1, v2) = ("id|user|password|clientid|secret", "abcd");
-        conf.api_credentials = format!(
+        conf.api_credentials = Some(format!(
             "netatmo:{},someotherservice:{}",
             base64::encode(v1),
             base64::encode(v2)
-        );
+        ));
         let expected = {
             let mut h = HashMap::new();
             h.insert("netatmo".to_string(), v1.to_string());
