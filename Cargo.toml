@@ -36,8 +36,8 @@ base64 = "0.13"
 geohash = "0.12"
 
 [features]
-default = []
+default = ["sensor-bme680", "switch-gpio", "sensor-api", "sensor-external"]
 sensor-bme680 = ["bme680", "embedded-hal", "linux-embedded-hal", "i2cdev"]
 switch-gpio = ["rust_gpiozero"]
-sensor-api = ["serde_urlencoded", "surf", "serde_json"]
+sensor-api = ["serde_urlencoded", "surf", "serde_json", "serde"]
 sensor-external = ["serde_json", "serde"]
