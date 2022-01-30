@@ -116,7 +116,7 @@ pub async fn setup(config: &Config) -> Result<Vec<Addr<ExternalSensorReader>>> {
             externals.len()
         );
         for actor in externals.into_iter().map(|p| {
-            ExternalSensorReader::new(&p, &config.metrics_name, vec![], Duration::from_secs(1))
+            ExternalSensorReader::new(&p, &config.metrics_name, vec![], config.resolution())
         }) {
             let a = actor.start().await?;
             external_actors.push(a);
