@@ -5,6 +5,11 @@ pub fn e_<E: Into<anyhow::Error>>(err: E) -> anyhow::Error {
 pub fn avg(v: &[f64]) -> f64 {
     v.iter().fold(0_f64, |p, c| p + c) / v.len() as f64
 }
+
+pub fn max(v: &[f64]) -> f64 {
+    v.iter().fold(0_f64, |p, c| p.max(*c))
+}
+
 #[macro_export]
 macro_rules! extract_from {
     ( $coll: expr, $cls: path ) => {{

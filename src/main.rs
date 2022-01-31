@@ -70,7 +70,6 @@ async fn main() -> Result<()> {
     #[cfg(feature = "switch-gpio")]
     app.at("/s")
         .nest(switches::http_handlers::init_and_setup(&config).await?);
-    println!("####");
     let addr = config.endpoint;
     info!("Serving at {}", addr);
     app.listen(addr.to_owned()).await.map_err(e_)

@@ -1,4 +1,9 @@
-use crate::{config::Config, extract_from, msg::Value, utils::avg};
+use crate::{
+    config::Config,
+    extract_from,
+    msg::Value,
+    utils::{avg, max},
+};
 
 use anyhow::anyhow;
 use async_std::task;
@@ -229,7 +234,7 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                                         .and_then(|r| r.as_f64())
                                                         .and_then(|r| Some(Reading::Rain(r)))
                                                         .or(m
-                                                            .get("wind_strength")
+                                                            .get("gust_strength")
                                                             .and_then(|r| r.as_f64())
                                                             .and_then(|r| Some(Reading::Wind(r))))
                                                 })
@@ -241,7 +246,7 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
 
                                         addr.publish(SensorReading {
                                             id: collector_id,
-                                            reading: Value::Simple(avg(&wind) as f32),
+                                            reading: Value::Simple(max(&wind) as f32),
                                             labels: vec![String::from("wind"), String::from("kph")],
                                         })
                                         .unwrap();
@@ -249,7 +254,10 @@ impl Handler<IntervalMessage> for NetatmoSensorReader {
                                         addr.publish(SensorReading {
                                             id: collector_id,
                                             reading: Value::Simple(avg(&rain) as f32),
-                                            labels: vec![String::from("rain"), String::from("mm")],
+                                            labels: vec![
+                                                String::from("rain"),
+                                                String::from("mmph"),
+                                            ],
                                         })
                                         .unwrap();
                                     }
