@@ -24,7 +24,6 @@ pub(crate) enum SetupMetrics {
 
 #[message]
 #[derive(Clone, Debug)]
-
 pub(crate) struct ReadNow;
 
 #[message(result = "bool")]
@@ -38,4 +37,10 @@ pub(crate) struct EncodeData;
 pub(crate) enum Switch {
     On,
     Off,
+}
+
+#[message(result = "anyhow::Result<()>")]
+#[derive(Clone, Debug)]
+pub struct DeviceControl {
+    pub payload: Vec<u8>,
 }

@@ -6,3 +6,6 @@ pub mod external;
 
 #[cfg(feature = "sensor-api")]
 pub mod api;
+
+#[cfg(feature = "sensor-mqtt-heater")]
+pub mod mqtt_heater;

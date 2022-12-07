@@ -27,6 +27,15 @@ pub struct Config {
 
     #[envconfig(from = "JH_LOCATION")]
     pub location: Option<String>,
+
+    #[envconfig(from = "JH_MQTT_CONN")]
+    pub mqtt_connection: Option<String>,
+
+    #[envconfig(from = "JH_HEATERFAN_MAC")]
+    pub heaterfan_mac: Option<String>,
+
+    #[envconfig(from = "JH_WEBHOOK_URL")]
+    pub webhook_url: Option<String>,
 }
 
 impl Config {
@@ -87,6 +96,31 @@ impl Config {
 
     pub fn resolution(&self) -> Duration {
         Duration::from_millis(self.resolution_ms)
+    }
+
+    pub(crate) fn mqtt_address(&self) -> Result<url::Url> {
+        let c = self
+            .mqtt_connection
+            .as_ref()
+            .map(|s| s.clone())
+            .ok_or(anyhow::anyhow!("MQTT connection not set"))?;
+        c.parse::<url::Url>().map_err(From::from)
+    }
+
+    pub(crate) fn webhook_url(&self) -> Result<url::Url> {
+        let c = self
+            .webhook_url
+            .as_ref()
+            .map(|s| s.clone())
+            .ok_or(anyhow::anyhow!("WEBHOOK_URL not set"))?;
+        c.parse::<url::Url>().map_err(From::from)
+    }
+
+    pub fn heaterfan_mac(&self) -> Result<String> {
+        self.heaterfan_mac
+            .as_ref()
+            .map(|s| s.clone())
+            .ok_or(anyhow::anyhow!("No Heaterfan MAC found"))
     }
 }
 

@@ -5,6 +5,7 @@ mod msg;
 mod sensors;
 mod utils;
 
+mod router;
 #[cfg(feature = "switch-gpio")]
 mod switches;
 use clap::App as ClApp;
@@ -62,10 +63,16 @@ async fn main() -> Result<()> {
     #[cfg(feature = "sensor-api")]
     let _netatmo = sensors::api::netatmo::setup(&config).await?;
 
+    #[cfg(feature = "sensor-mqtt-heater")]
+    let hf = sensors::mqtt_heater::setup(&config).await?;
+
     let mut app = tide::with_state(AppState {
         collector: prometheus,
     });
     app.at("/metrics").get(metrics);
+
+    #[cfg(feature = "sensor-mqtt-heater")]
+    app.at("/r").nest(router::register_actors(vec![hf]).await?);
 
     #[cfg(feature = "switch-gpio")]
     app.at("/s")
