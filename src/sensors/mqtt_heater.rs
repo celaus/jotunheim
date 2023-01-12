@@ -189,7 +189,7 @@ impl Handler<ReadNow> for MqttHeaterReader {
                     Some(SensorReading {
                         id: self.collector_id,
                         reading: Value::Simple(*s as f32),
-                        labels: vec![String::from("temperature"), String::from("celsius")],
+                        labels: vec![String::from("local_temperature"), String::from("celsius")],
                     })
                 }
 
@@ -323,7 +323,7 @@ impl Handler<DeviceControl> for MqttHeaterReader {
                 }
                 _ => Ok(()),
             }
-            .map_err(|e| e.into())
+            .map_err(Into::into)
         } else {
             bail!("MQTT not connected");
         }
